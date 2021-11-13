@@ -1,0 +1,132 @@
+﻿@page "/fetchdata"
+@using AsyncTesting.Shared
+@using System.Text.Json
+@using System.Text
+@using Newt = Newtonsoft.Json
+@using System.Buffers
+@inject HttpClient Http
+
+<PageTitle>Weather forecast</PageTitle>
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+
+<button @onclick="GetWeather">Get Weather</button>
+<button @onclick="NegotiateJsonStreamAsync">Get Weather Json</button>
+<button @onclick="NegotiateRawJsonStreamAsync">RawJson</button>
+
+@if (forecastList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecastList)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<WeatherForecast> forecastList = new();
+
+    private readonly JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, DefaultBufferSize = 128 };
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        //GetWeather();
+
+
+    }
+
+    private async Task GetWeather()
+    {
+        using( var response = await Http.GetAsync("WeatherForecast", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+        {
+            response.EnsureSuccessStatusCode();
+
+            using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+            {
+                IAsyncEnumerable<WeatherForecast> weatherForecasts = JsonSerializer.DeserializeAsyncEnumerable<WeatherForecast>(stream, options);
+                await foreach(WeatherForecast forecast in weatherForecasts)
+                {
+                    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] - {forecast.Summary}");
+                    //forecastList.Add(forecast);
+                }
+            }
+       }
+    }
+
+    private async Task NegotiateRawJsonStreamAsync()
+    {
+	    Console.WriteLine($"-- {nameof(NegotiateRawJsonStreamAsync)} --");
+	    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Receving weather forecasts . . .");
+
+	    using HttpClient httpClient = new();
+	    httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
+	    using HttpResponseMessage response = await httpClient.GetAsync("https://localhost:7181/WeatherForecast", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+	    response.EnsureSuccessStatusCode();
+	    using Stream responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+	    while (true)
+	    {
+		    byte[] buffer = ArrayPool<byte>.Shared.Rent(128);
+		    int bytesRead = await responseStream.ReadAsync(buffer);
+
+		    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] ({bytesRead}/{buffer.Length}) {Encoding.UTF8.GetString(buffer)}");
+
+                    ArrayPool<byte>.Shared.Return(buffer);
+
+		    if (bytesRead == 0)
+		    {
+			    break;
+		    }
+	    }
+
+	    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Weather forecasts has been received.");
+	    Console.WriteLine();
+    }
+
+    private async Task NegotiateJsonStreamAsync()
+    {
+	    Console.WriteLine($"-- {nameof(NegotiateJsonStreamAsync)} --");
+	    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Receving weather forecasts . . .");
+
+	    using HttpClient httpClient = new();
+	    httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
+	    using HttpResponseMessage response = await httpClient.GetAsync("https://localhost:7181/WeatherForecast", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+	    response.EnsureSuccessStatusCode();
+	    using Stream responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+	    await foreach (WeatherForecast weatherForecast in JsonSerializer.DeserializeAsyncEnumerable<WeatherForecast>(responseStream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, DefaultBufferSize = 128 }))
+	    {
+		    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] {weatherForecast.Summary}");
+	    }
+
+	    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Weather forecasts has been received.");
+	    Console.WriteLine();
+    }
+}
