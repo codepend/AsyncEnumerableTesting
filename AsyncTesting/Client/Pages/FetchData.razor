@@ -53,13 +53,15 @@ else
     protected override async Task OnInitializedAsync()
     {
 
-        //GetWeather();
+        //await GetWeather();
 
 
     }
 
     private async Task GetWeather()
     {
+        Console.WriteLine($"-- {nameof(GetWeather)} --");
+	    Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Receving weather forecasts . . .");
         using( var response = await Http.GetAsync("WeatherForecast", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
         {
             response.EnsureSuccessStatusCode();
@@ -70,10 +72,13 @@ else
                 await foreach(WeatherForecast forecast in weatherForecasts)
                 {
                     Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] - {forecast.Summary}");
+                    //await InvokeAsync(StateHasChanged);
                     //forecastList.Add(forecast);
                 }
             }
        }
+       Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Weather forecasts has been received.");
+	   Console.WriteLine();
     }
 
     private async Task NegotiateRawJsonStreamAsync()
