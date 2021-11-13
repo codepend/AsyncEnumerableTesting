@@ -6,15 +6,11 @@ namespace AsyncTesting.Client.Extensions
 {
     public static class HttpClientExtensions
     {
-        public static async IAsyncEnumerable<T> GetStreamedIEnumerableAsync<T>(this HttpClient httpClient, string url )
+        public static async IAsyncEnumerable<T> GetStreamedIEnumerableAsync<T>(this HttpClient httpClient, string url)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.SetBrowserResponseStreamingEnabled(true); // Enable response streaming
-            //if (method == HttpMethod.Post)
-            //{
-            //    request.Content = new StringContent(JsonSerializer.Serialize<U>(postPayload), Encoding.UTF8, "application/json");
-            //}
-
+            
             // Be sure to use HttpCompletionOption.ResponseHeadersRead
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             using var stream = await response.Content.ReadAsStreamAsync();
