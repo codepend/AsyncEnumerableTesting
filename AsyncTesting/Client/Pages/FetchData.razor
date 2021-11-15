@@ -176,6 +176,7 @@ else
     }
     private async Task TryThisMFItWorks()
     {
+        forecastList.Clear();
         Console.WriteLine($"-- {nameof(TryThisMFItWorks)} --");
         Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Receving weather forecasts . . .");
 
@@ -200,6 +201,7 @@ else
     }
     private async Task UsingExtensionMethod()
     {
+        forecastList.Clear();
         Console.WriteLine($"-- {nameof(UsingExtensionMethod)} --");
         Console.WriteLine($"[{DateTime.UtcNow:hh:mm:ss.fff}] Receving weather forecasts . . .");
 
